@@ -4,17 +4,50 @@ let channel = null;
 let connection = null;
 
 async function connectRabbitMQ() {
-    if (channel && connection) return { channel, connection };
-    const rabbitUrl = `amqp://${process.env.RABBITMQ_USER}:${process.env.RABBITMQ_PASSWORD}@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`;
-    connection = await amqp.connect(rabbitUrl);
-    channel = await connection.createChannel();
-    return { channel, connection };
+    try {
+        if (channel && connection && !connection.connection.destroyed) {
+            return { channel, connection };
+        }
+
+        const rabbitUrl = `amqp://${process.env.RABBITMQ_USER}:${process.env.RABBITMQ_PASSWORD}@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`;
+        console.log('Connecting to RabbitMQ:', `amqp://${process.env.RABBITMQ_USER}:****@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`);
+
+        connection = await amqp.connect(rabbitUrl);
+        console.log('RabbitMQ connection established');
+
+        connection.on('error', (err) => {
+            console.error('RabbitMQ connection error:', err);
+            channel = null;
+            connection = null;
+        });
+
+        connection.on('close', () => {
+            console.log('RabbitMQ connection closed');
+            channel = null;
+            connection = null;
+        });
+
+        channel = await connection.createChannel();
+        console.log('RabbitMQ channel created');
+
+        return { channel, connection };
+    } catch (error) {
+        console.error('Failed to connect to RabbitMQ:', error.message);
+        throw error;
+    }
 }
 
 async function publishToExchange(exchange, routingKey, payload) {
-    const { channel } = await connectRabbitMQ();
-    await channel.assertExchange(exchange, 'direct', { durable: true });
-    channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)));
+    try {
+        const { channel } = await connectRabbitMQ();
+        await channel.assertExchange(exchange, 'direct', { durable: true });
+        const result = channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)));
+        console.log(`Message published to exchange: ${exchange}, routing key: ${routingKey}, success: ${result}`);
+        return result;
+    } catch (error) {
+        console.error('Failed to publish message to RabbitMQ:', error.message);
+        throw error;
+    }
 }
 
 async function closeRabbitMQ() {

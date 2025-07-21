@@ -1,7 +1,15 @@
+require('dotenv').config(); // Load environment variables
 const { Pool } = require('pg');
 
 // Configure your PostgreSQL connection details
 // It's recommended to use environment variables for sensitive data
+console.log('Database config:', {
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
+});
+
 const pool = new Pool({
   user: process.env.DB_USER || 'your_db_user', // Default to 'your_db_user' if not set
   host: process.env.DB_HOST || 'localhost',

@@ -11,9 +11,18 @@ router.get('/getMeterReadings', async (req, res) => {
     if (!meterNumber) {
         return res.status(400).json({ error: 'meter_number is required' });
     }
+
+    console.log('Environment check:', {
+        DB_HOST: process.env.DB_HOST,
+        DB_USER: process.env.DB_USER,
+        DB_NAME: process.env.DB_NAME,
+        DB_PORT: process.env.DB_PORT
+    });
+
     try {
         const query = `SELECT row_id, meter_number, reading_time, current_reading, previous_reading, created_on FROM cis.meter_readings WHERE meter_number = $1 ORDER BY reading_time DESC LIMIT 1`;
         const { rows } = await db.query(query, [meterNumber]);
+        console.log('Fetched meter readings:', rows);
         if (rows.length === 0) {
             return res.status(404).json({ error: 'No readings found for this meter_number' });
         }
@@ -21,6 +30,8 @@ router.get('/getMeterReadings', async (req, res) => {
         const reading = rows[0];
         const now = new Date();
         const readingTime = new Date(reading.reading_time);
+        console.log('Current reading time:', readingTime);
+
         const hoursElapsed = Math.max(1, Math.floor((now - readingTime) / (1000 * 60 * 60)));
         const randomIncrement = Math.floor(Math.random() * hoursElapsed);
 
