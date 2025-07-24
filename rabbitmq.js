@@ -9,8 +9,8 @@ async function connectRabbitMQ() {
             return { channel, connection };
         }
 
-        const rabbitUrl = `amqp://${process.env.RABBITMQ_USER}:${process.env.RABBITMQ_PASSWORD}@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`;
-        console.log('Connecting to RabbitMQ:', `amqp://${process.env.RABBITMQ_USER}:****@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`);
+        const rabbitUrl = `amqp://${process.env.RABBITMQ_USER}:${process.env.RABBITMQ_PASSWORD}@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}/${process.env.RABBITMQ_VHOST || 'edfvhost'}`;
+        console.log('Connecting to RabbitMQ:', `amqp://${process.env.RABBITMQ_USER}:****@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}/${process.env.RABBITMQ_VHOST || 'edfvhost'}`);
 
         connection = await amqp.connect(rabbitUrl);
         console.log('RabbitMQ connection established');
