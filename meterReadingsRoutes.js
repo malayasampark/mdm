@@ -57,12 +57,12 @@ router.get('/getMeterReadings', async (req, res) => {
 
         // Publish to RabbitMQ exchange
         try {
-            await publishToExchange('comm.ex.1', 'consumerkey', { meter_number: meterNumber, reading: updatedReading });
+            await publishToExchange('comm.ex.1', 'meterredingkey', updatedReading);
         } catch (rabbitErr) {
             console.error('Error publishing to RabbitMQ:', rabbitErr);
         }
 
-        return res.json({ meter_number: meterNumber, readings: [updatedReading] });
+        return res.json(updatedReading);
     } catch (err) {
         console.error('Error fetching or updating meter readings:', err);
         return res.status(500).json({ error: 'Internal server error' });
