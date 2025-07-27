@@ -5,12 +5,54 @@ const { publishToExchange } = require('./rabbitmq');
 // This function will fetch all meter readings and send them to RabbitMQ
 async function sendAllMeterReadingsToRabbitMQ() {
     try {
-        const query = `SELECT row_id, meter_number, reading_time, current_reading, previous_reading, created_on FROM cis.meter_readings`;
+        const query = `
+            SELECT 
+                mr.row_id, 
+                mr.meter_number, 
+                mr.reading_time, 
+                mr.current_reading, 
+                mr.previous_reading, 
+                mr.created_on,
+                ca.consumer_number,
+                u.user_id
+            FROM cis.meter_readings mr
+            LEFT JOIN cis.consumer_accounts ca ON mr.meter_number = ca.meter_number
+            LEFT JOIN cis.user u ON ca.consumer_number = u.user_id
+            WHERE u.user_id IS NOT NULL
+        `;
         const { rows } = await db.query(query);
+        const now = new Date();
+
         for (const reading of rows) {
-            await publishToExchange('comm.ex.1', 'consumerkey', { meter_number: reading.meter_number, reading });
+            const readingTime = new Date(reading.reading_time);
+            const hoursElapsed = Math.max(1, Math.floor((now - readingTime) / (1000 * 60 * 60)));
+            const randomIncrement = Math.floor(Math.random() * hoursElapsed);
+
+            const prevCurrentReading = parseFloat(reading.current_reading);
+            if (isNaN(prevCurrentReading)) {
+                console.warn(`Invalid current_reading for meter ${reading.meter_number}, skipping...`);
+                continue;
+            }
+
+            const newCurrentReading = prevCurrentReading + randomIncrement;
+
+            // Update the database with the new readings
+            const updateQuery = `UPDATE cis.meter_readings SET previous_reading = $1, current_reading = $2, reading_time = $3 WHERE row_id = $4`;
+            await db.query(updateQuery, [prevCurrentReading, newCurrentReading, now, reading.row_id]);
+
+            // Prepare the updated reading object
+            const updatedReading = {
+                ...reading,
+                previous_reading: prevCurrentReading,
+                current_reading: newCurrentReading,
+                reading_time: now,
+                consumer_number: reading.consumer_number,
+                user_id: reading.user_id
+            };
+
+            await publishToExchange('comm.ex.1', 'meterredingkey', updatedReading);
         }
-        console.log('All meter readings sent to RabbitMQ');
+        console.log(`All ${rows.length} meter readings updated and sent to RabbitMQ`);
     } catch (err) {
         console.error('Error sending meter readings to RabbitMQ:', err);
     }
