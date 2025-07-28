@@ -73,7 +73,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
 }
 
 // Schedule the task to run every day at 1:00 AM
-cron.schedule('7 10 * * *', () => {
+cron.schedule('0 1 * * *', () => {
     console.log('Scheduler running: sending all meter readings to RabbitMQ');
     sendAllMeterReadingsToRabbitMQ();
 });
