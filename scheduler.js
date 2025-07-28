@@ -20,9 +20,10 @@ async function sendAllMeterReadingsToRabbitMQ() {
                 pb.balance_id
             FROM cis.meter_readings mr
             LEFT JOIN cis.consumer_accounts ca ON mr.meter_number = ca.meter_number
-            LEFT JOIN cis.user u ON ca.consumer_number = u.user_id
-            LEFT JOIN cis.prepaid_balance pb ON ca.consumer_number = pb.consumer_number
+            LEFT JOIN cis.users u ON ca.consumer_number = u.user_id
+            LEFT JOIN cis.prepaid_balances pb ON ca.account_id = pb.account_id
             WHERE u.user_id IS NOT NULL AND pb.balance_id IS NOT NULL
+
         `;
         const { rows } = await db.query(query);
         const now = new Date();
@@ -51,24 +52,14 @@ async function sendAllMeterReadingsToRabbitMQ() {
             await db.query(updateQuery, [prevCurrentReading, newCurrentReading, now, reading.row_id]);
 
             // Update the prepaid balance
-            const balanceUpdateQuery = `UPDATE cis.prepaid_balance SET current_balance = $1 WHERE balance_id = $2`;
+            const balanceUpdateQuery = `UPDATE cis.prepaid_balances SET current_balance = $1 WHERE balance_id = $2`;
             await db.query(balanceUpdateQuery, [newBalance, reading.balance_id]);
 
             // Prepare the updated reading object
-            /*const updatedReading = {
-                ...reading,
-                previous_reading: prevCurrentReading,
-                current_reading: newCurrentReading,
-                reading_time: now,
-                consumer_number: reading.consumer_number,
-                user_id: reading.user_id,
-                tariff_rate: reading.tariff_rate,
-                charge: charge,
-                previous_balance: currentBalance,
-                current_balance: newBalance
-            };*/
+
             const updatedReading = {
-                ...reading,
+                meter_number: reading.meter_number,
+                consumer_number: reading.consumer_number,
                 previous_reading: prevCurrentReading,
                 current_reading: newCurrentReading,
                 reading_time: now
@@ -82,7 +73,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
 }
 
 // Schedule the task to run every day at 1:00 AM
-cron.schedule('0 1 * * *', () => {
+cron.schedule('7 10 * * *', () => {
     console.log('Scheduler running: sending all meter readings to RabbitMQ');
     sendAllMeterReadingsToRabbitMQ();
 });
