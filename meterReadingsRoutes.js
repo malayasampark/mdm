@@ -49,7 +49,8 @@ router.get('/getMeterReadings', async (req, res) => {
 
         // Prepare the response object
         const updatedReading = {
-            ...reading,
+            meter_number: reading.meter_number,
+            consumer_number: reading.consumer_number,
             previous_reading: prevCurrentReading,
             current_reading: newCurrentReading,
             reading_time: now

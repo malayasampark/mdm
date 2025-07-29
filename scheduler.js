@@ -14,6 +14,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
                 mr.previous_reading, 
                 mr.created_on,
                 ca.consumer_number,
+                ca.connection_type,
                 u.user_id,
                 pb.tariff_rate,
                 pb.current_balance,
@@ -62,6 +63,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
                 consumer_number: reading.consumer_number,
                 previous_reading: prevCurrentReading,
                 current_reading: newCurrentReading,
+                tariff_rate: reading.tariff_rate,
                 reading_time: now
             };
             await publishToExchange('comm.ex.1', 'meterredingkey', updatedReading);
@@ -73,7 +75,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
 }
 
 // Schedule the task to run every day at 1:00 AM
-cron.schedule('0 1 * * *', () => {
+cron.schedule('16 16 * * *', () => {
     console.log('Scheduler running: sending all meter readings to RabbitMQ');
     sendAllMeterReadingsToRabbitMQ();
 });
