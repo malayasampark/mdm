@@ -183,10 +183,10 @@ async function generateMonthlyBills() {
 }
 
 // Schedule the task to run every day at 2:00 AM (after meter reading scheduler)
-cron.schedule('0 14 * * *', () => {
+/*cron.schedule('0 14 * * *', () => {
     console.log('Monthly billing scheduler running...');
     generateMonthlyBills();
-});
+});*/
 
 // Also schedule to run on the 1st of every month at 9:00 AM
 cron.schedule('0 9 1 * *', () => {
