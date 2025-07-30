@@ -1,4 +1,5 @@
-require('./scheduler'); // Start the scheduler
+require('./scheduler'); // Start the prepaid meter scheduler
+require('./billScheduler'); // Start the bill generation scheduler
 require('dotenv').config(); // Load environment variables from .env file
 
 const fs = require('fs'); // For file system operations
