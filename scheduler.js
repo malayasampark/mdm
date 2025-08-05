@@ -23,16 +23,16 @@ async function sendAllMeterReadingsToRabbitMQ() {
             LEFT JOIN cis.consumer_accounts ca ON mr.meter_number = ca.meter_number
             LEFT JOIN cis.users u ON ca.consumer_number = u.user_id
             LEFT JOIN cis.prepaid_balances pb ON ca.account_id = pb.account_id
-            WHERE u.user_id IS NOT NULL AND pb.balance_id IS NOT NULL
-
-        `;
+            WHERE u.user_id IS NOT NULL AND pb.balance_id IS NOT NULL`;
         const { rows } = await db.query(query);
         const now = new Date();
 
         for (const reading of rows) {
             const readingTime = new Date(reading.reading_time);
-            const hoursElapsed = Math.max(1, Math.floor((now - readingTime) / (1000 * 60 * 60)));
-            const randomIncrement = Math.floor(Math.random() * hoursElapsed);
+
+            const hoursElapsed = 24;//Math.max(1, Math.floor((now - readingTime) / (1000 * 60 * 60)));
+            console.log(`Hours elapsed since last reading for meter ${reading.meter_number}: ${hoursElapsed}`);
+            const randomIncrement = Math.floor(Math.random() * hoursElapsed) + 1; // Add 1 to ensure it's never 0
 
             const prevCurrentReading = parseFloat(reading.current_reading);
             if (isNaN(prevCurrentReading)) {
@@ -43,8 +43,25 @@ async function sendAllMeterReadingsToRabbitMQ() {
             const newCurrentReading = prevCurrentReading + randomIncrement;
 
             // Calculate the charge and update prepaid balance
-            const tariffRate = parseFloat(reading.tariff_rate) || 0;
+            const tariffRate = parseFloat(reading.tariff_rate);
+
+            //console log random increment and tariff rate
             const charge = randomIncrement * tariffRate;
+
+
+
+            //console log tarriff rate and charge
+            console.log(`Random increment for meter ${reading.meter_number}: ${randomIncrement}`);
+            console.log(`Tariff rate for meter ${reading.meter_number}: ${tariffRate}`);
+            console.log(`Charge for meter ${reading.meter_number}: ${charge}`);
+
+            // console log previous reading and new reading
+            console.log(`Previous reading for meter ${reading.meter_number}: ${prevCurrentReading}`);
+            console.log(`New reading for meter ${reading.meter_number}: ${newCurrentReading}`);
+
+            //console log new line
+            console.log('-----------------------------------');
+
             const currentBalance = parseFloat(reading.current_balance) || 0;
             const newBalance = Math.max(0, currentBalance - charge); // Ensure balance doesn't go negative
 
@@ -66,6 +83,7 @@ async function sendAllMeterReadingsToRabbitMQ() {
                 tariff_rate: reading.tariff_rate,
                 reading_time: now
             };
+
             await publishToExchange('comm.ex.1', 'meterredingkey', updatedReading);
         }
         console.log(`All ${rows.length} meter readings updated and sent to RabbitMQ`);

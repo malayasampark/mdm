@@ -42,7 +42,6 @@ async function publishToExchange(exchange, routingKey, payload) {
         const { channel } = await connectRabbitMQ();
         await channel.assertExchange(exchange, 'direct', { durable: true });
         const result = channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)));
-        console.log(`Message published to exchange: ${exchange}, routing key: ${routingKey}, success: ${result}`);
         return result;
     } catch (error) {
         console.error('Failed to publish message to RabbitMQ:', error.message);
